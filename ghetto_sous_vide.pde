@@ -36,7 +36,6 @@ int setpoint = 120;
 #define COOKER_PIN 4
 
 
-
 void setup(void) {
   lcd.begin(16,2);
 
@@ -57,6 +56,7 @@ void setup(void) {
   delay(100);
 }
 
+int loop_count = 0;
 void loop(void) {
   adjust_setpoint();
 
@@ -76,14 +76,43 @@ void loop(void) {
     lcd.setCursor(10,1);
     lcd.print((int)temperature);
 
-    if(temperature < setpoint) {
-      digitalWrite(COOKER_PIN, HIGH);
-    } else {
-      digitalWrite(COOKER_PIN, LOW);
-    }
+    control_relay(COOKER_PIN, (int)temperature, setpoint);
   }
 
+  loop_count++;
   delay(200);
+}
+
+// how many readings since last change?  don't want to toggle relay too quickly
+void control_relay(int pin, int temperature, int setpoint) {
+  int ideal_pin = LOW;
+  if(temperature < setpoint) {
+    ideal_pin = HIGH;
+  } else {
+    ideal_pin = LOW;
+  }
+
+  if(time_to_change(ideal_pin)){
+    digitalWrite(pin, ideal_pin);
+  }
+}
+
+int count_at_last_change = 0;
+int prev_setting = LOW;
+bool time_to_change(int ideal_pin) {
+
+  if (ideal_pin == prev_setting) {
+    return false;
+  }
+
+  if (((loop_count - count_at_last_change) > 25) ||  // 5 seconds
+      (loop_count < count_at_last_change)) { // we wrapped around
+    count_at_last_change = loop_count;
+    prev_setting = ideal_pin;
+
+    return true;
+  }
+  
 }
 
 void adjust_setpoint() {
