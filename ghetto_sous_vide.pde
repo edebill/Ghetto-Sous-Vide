@@ -16,10 +16,10 @@ float temperature = 0.0;  // Temperature output variable
 
 MAX6675 temp0(CS, SO, SCK, units, max6675_error);
 
-#include <LCD4Bit.h> 
+#include <LiquidCrystal.h>
 //create object to control an LCD.  
-//number of lines in display=1
-LCD4Bit lcd = LCD4Bit(2);
+//  (RS, Enable, d4-d7)
+LiquidCrystal lcd(6, 5, 7, 8, 9, 10);
 
 
 //  how do we identify ourselves to the logging application?
@@ -48,6 +48,15 @@ LCD4Bit lcd = LCD4Bit(2);
 #endif
 
 
+// what temperature are we trying to keep the food at?
+int setpoint = 120;
+
+// pins for controlling setpoin
+#define UP_PIN   3
+#define DOWN_PIN 2
+
+
+
 // for timeout, waiting for response
 uint16_t wait_start;
 uint16_t wait_end;
@@ -57,7 +66,7 @@ char crchex[5];
 
 
 void setup(void) {
-  lcd.init();
+  lcd.begin(16,2);
 
   // initialize inputs/outputs
   // start serial port
@@ -77,10 +86,19 @@ void setup(void) {
   Serial.print("ATSM1\r");
   Serial.print("ATCN\r");
 
+ 
   delay(10);
 #endif
 
   error("booting");
+
+
+  // temperature control pins
+  init_button(UP_PIN);
+  init_button(DOWN_PIN);
+
+  // cooker control (HIGH == cook, LOW == cool)
+  pinMode(COOKER_PIN, OUTPUT);
 
   delay(100);
 
@@ -88,10 +106,18 @@ void setup(void) {
 }
 
 void loop(void) {
+  
+
+  if(button_pressed(UP_PIN)) {
+    setpoint++;
+  }
+
+  if(button_pressed(DOWN_PIN)) {
+    setpoint--;
+  }
+
+  
   float reading;
-  
-  
-  Serial.begin(9600);
   reading = read_data();
 
   // if reading is outside range (probably DEVICE_DISCONNECTED) don't log it
@@ -101,16 +127,38 @@ void loop(void) {
     format_float(reading, buff);
 
     lcd.clear();
-    lcd.printIn(buff);
+    lcd.setCursor(0,0);   // technically redundant, but clarifies things
+    lcd.print("set:");
+    lcd.setCursor(0,1);
+    lcd.print("current:");
+    lcd.setCursor(10,0);
+    lcd.print(setpoint);
+    lcd.setCursor(10,1);
+    lcd.print((int)reading);
 
     //	transmit_data(reading);
     Serial.println(buff);
+
   }
 
 
-  delay(1000);
+  delay(100);
 
 }
+
+void init_button(int button) {
+  pinMode(button, INPUT);
+  digitalWrite(button, HIGH);
+}
+
+bool button_pressed(int button) {
+  if (digitalRead(button) == LOW) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 
 void xbee_wake(){
 #ifdef HAVE_XBEE
@@ -138,7 +186,6 @@ void xbee_sleep(){
 // DEVICE_DISCONNECTED == -1766.19 F, well outside the
 // valid reading range for this device.
 float read_data(){
-#define NUM_TRIES 20
 #define NUM_READINGS 3
 
   return temp0.read_temp(NUM_READINGS);
