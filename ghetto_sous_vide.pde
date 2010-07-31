@@ -1,3 +1,15 @@
+/*
+   Ghetto Sous Vide controller
+      copyright 2010 Erik DeBill  (erik@debill.org)
+
+      License to use this code is granted under the 
+         Creative Commons Attribution-ShareAlike 3.0 Unported License
+         http://creativecommons.org/licenses/by-sa/3.0/
+
+      If you do something with it, please leave my name in the code
+      comments, and I'd appreciate it if you'd met me know.
+*/
+
 // http://code.google.com/p/max6675-arduino-library/
 #include <MAX6675.h>
 
@@ -18,15 +30,7 @@ MAX6675 temp0(CS, SO, SCK, units, max6675_error);
 LiquidCrystal lcd(6, 5, 7, 8, 9, 10);
 
 
-//  how do we identify ourselves to the logging application?
-#define source "ghetto sous vide"
-
-
-
-// what temperature are we trying to keep the food at?
-int setpoint = 120;
-
-// pins for controlling setpoin
+// pins for controlling setpoint
 #define UP_PIN   3
 #define DOWN_PIN 2
 
@@ -34,6 +38,13 @@ int setpoint = 120;
 // pin for controlling the cooker
 // HIGH is on, LOW is off
 #define COOKER_PIN 4
+
+
+//  how do we identify ourselves to the logging application?
+#define source "ghetto sous vide"
+
+// what temperature are we trying to keep the food at?
+int setpoint = 120;
 
 
 void setup(void) {
